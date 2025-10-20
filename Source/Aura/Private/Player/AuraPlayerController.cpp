@@ -4,12 +4,72 @@
 #include "Player/AuraPlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "Interaction/HighlightInterface.h"
 
 AAuraPlayerController::AAuraPlayerController()
 {
 	// 网络同步
 	bReplicates = true;
 }
+
+void AAuraPlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+
+	CursorTrace();
+}
+
+void AAuraPlayerController::CursorTrace()
+{
+	FHitResult CursorHit;
+	GetHitResultUnderCursor(ECC_Visibility, false,CursorHit);
+	if (!CursorHit.bBlockingHit) return;
+
+	// 这个顺序保证了LastActor指向上一帧的情况
+	LastActor = ThisActor;	
+	ThisActor = Cast<IHighlightInterface>(CursorHit.GetActor());
+
+	/**
+	 * 多种边界情况需要处理
+	 * 1：LastActor = NULL && ThisActor = NULL
+	 *		- 不处理
+	 * 2：LastActor = NULL && ThisActor != NULL
+	 *		- 高亮ThisActor
+	 * 3：LastActor ！= NULL && ThisActor = NULL
+	 *		- 取消高亮LastActor
+	 * 4：都valid，但是指向不同Actor
+	 *		- 取消高亮LastActor，高亮ThisActor
+	 * 5：都valid，指向同一个Actor
+	 *		- 不处理
+	 */
+
+	if (LastActor == nullptr)
+	{
+		if (ThisActor != nullptr)
+		{
+			// 情况2
+			ThisActor->HighlightActor();
+		}
+	}
+	else
+	{
+		if (ThisActor == nullptr)
+		{
+			// 情况3
+			LastActor->UnHighlightActor();
+		}
+		else
+		{
+			if (LastActor != ThisActor)
+			{
+				// 情况4
+				LastActor->UnHighlightActor();
+				ThisActor->HighlightActor();
+			}
+		}
+	}
+}
+
 
 void AAuraPlayerController::BeginPlay()
 {

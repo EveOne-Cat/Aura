@@ -10,6 +10,7 @@
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
+class IHighlightInterface;
 
 /**
  * 
@@ -21,6 +22,7 @@ class AURA_API AAuraPlayerController : public APlayerController
 
 public:
 	AAuraPlayerController();
+	virtual void PlayerTick(float DeltaTime) override;
 
 private:
 	// IMC
@@ -34,7 +36,15 @@ private:
 	// 用于控制玩家移动的主函数
 	void Move(const FInputActionValue& InputActionValue);
 
+	// 检查鼠标下的Actor
+	void CursorTrace();
+
+	// 鼠标追踪到的Actor
+	IHighlightInterface* LastActor;
+	IHighlightInterface* ThisActor;
+
 protected:
-	virtual void BeginPlay() override;\
+	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 };
+
